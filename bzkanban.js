@@ -1253,7 +1253,6 @@ function dragCard(ev) {
         "severity": card.dataset.bugSeverity,
         "assigned_to": card.dataset.assignee
     };
-    console.log(bugData);
     ev.dataTransfer.setData("text", JSON.stringify(bugData));
 }
 
@@ -1477,6 +1476,37 @@ function showNewBugModal() {
     versions.name = "version";
     versionLabel.appendChild(versions);
 
+    var assigneeLabel = document.createElement("label");
+    assigneeLabel.innerText = "Assignee";
+    var assignees = document.createElement("select");
+    assignees.id = "textAssignee";
+    assignees.name = "assignee";
+    assigneeLabel.appendChild(assignees);
+
+    var sorted = Array.from(bzAssignees.values()).sort(function(a, b) {
+        return a.real_name.localeCompare(b.real_name);
+    });
+
+    sorted.forEach(function(assignee) {
+        var option = document.createElement("option");
+        option.value = assignee.email;
+        option.text = assignee.real_name;
+        assignees.appendChild(option);
+        if (option.value == "nobody@mozilla.org") {
+            option.selected = true;
+        }
+    });
+
+    bzProductComponents.forEach(function(component) {
+        var opt = document.createElement("option");
+        opt.innerText = component;
+        opt.value = component;
+        components.appendChild(opt);
+        if (opt.value == bzComponent) {
+            opt.selected = true;
+        }
+    });
+
     var submit = document.createElement("button");
     submit.innerText = "Submit";
     submit.id = "submitNewBug";
@@ -1487,6 +1517,7 @@ function showNewBugModal() {
             summary: document.getElementById("textAddBugSummary").value,
             description: document.getElementById("textAddBugDescription").value,
             version: document.getElementById("textVersion").value,
+            assignee: document.getElementById("textAssignee").value,
             // Bugzilla web CGI kicks in if opsys and platform default is blank
             // doing code to detect through the browser.
             // TODO: Write js detection code if blank is detected
@@ -1494,6 +1525,9 @@ function showNewBugModal() {
             platform: "ALL",
             target_milestone: bzProductMilestone
         };
+        if (dataObj.assignee != "nobody@mozilla.org") {
+            dataObj.status = "ASSIGNED";
+        }
 
         httpRequest("POST", "/rest.cgi/bug", dataObj, function() {
             loadBoard();
@@ -1506,18 +1540,12 @@ function showNewBugModal() {
     comments.appendChild(descriptionLabel);
     meta.appendChild(componentLabel);
     meta.appendChild(versionLabel);
+    meta.appendChild(assigneeLabel);
 
     body.appendChild(comments);
     body.appendChild(meta);
 
     footer.appendChild(submit);
-
-    bzProductComponents.forEach(function(component) {
-        var opt = document.createElement("option");
-        opt.innerText = component;
-        opt.value = component;
-        components.appendChild(opt);
-    });
 
     bzProductVersions.forEach(function(version) {
         var opt = document.createElement("option");
