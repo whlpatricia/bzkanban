@@ -166,7 +166,8 @@ function createQueryFields() {
         async.parallel([
             loadMilestonesList,
             loadComponentsList,
-            loadProductInfo
+            loadProductInfo,
+            loadPriorities
         ], function(err, result) {
             hideSpinner();
         });
@@ -227,6 +228,18 @@ function createQueryFields() {
         loadBoard();
     });
 
+    var priority = document.createElement("label");
+    var priorityLabel = document.createTextNode("Priority");
+    var priorityList = document.createElement("select");
+    priorityList.id = "textPriority";
+    priorityList.name = "priority";
+    priorityList.disabled = "true"; // until content is loaded
+
+    priorityList.addEventListener("change", function() {
+        bzPriority = document.getElementById("textPriority").value;
+        loadBoard();
+    });
+
     product.appendChild(productLabel);
     product.appendChild(productList);
     milestone.appendChild(milestoneLabel);
@@ -237,13 +250,15 @@ function createQueryFields() {
     filter.appendChild(filterText);
     component.appendChild(componentLabel);
     component.appendChild(componentList);
+    priority.appendChild(priorityLabel);
+    priority.appendChild(priorityList);
 
     query.appendChild(product);
     query.appendChild(component);
     query.appendChild(milestone);
     query.appendChild(assignee);
+    query.appendChild(priority);
     query.appendChild(filter);
-
     return query;
 }
 
@@ -376,7 +391,7 @@ function showLoginModal() {
     body.appendChild(APIKeyLabel)
     footer.appendChild(submit);
 
-    document.querySelector(bzOptions.domElement).appendChild(loginModal);
+    document.querySelector(bzseveritys.domElement).appendChild(loginModal);
 }
 
 function loginModalVisible() {
@@ -628,16 +643,26 @@ function loadResolutions(callback) {
 }
 
 function loadPriorities(callback) {
+    clearPriorityList();
     bzProductPriorities = new Set();
+    var option = document.createElement("option");
+    option.value = "";
+    option.text = "ALL";
+    document.getElementById("textPriority").appendChild(option);
     httpGet("/rest.cgi/field/bug/priority", function(response) {
         var arrayPriorities = response.fields;
         arrayPriorities[0].values.forEach(function(priority) {
+            var option = document.createElement("option");
             var priorityName = priority.name;
+            option.value = priorityName;
+            option.text = priorityName;
             if (priorityName === "") {
                 return;
             }
             bzProductPriorities.add(priorityName);
+            document.getElementById("textPriority").appendChild(option);
         });
+        document.getElementById("textPriority").disabled = false;
         callback();
     });
 }
@@ -659,6 +684,7 @@ function loadSeverities(callback) {
 
 function loadComponentsList(callback) {
     bzProductComponents = new Set();
+    clearComponentsList();
     httpGet("/rest.cgi/product/" + bzProduct + "?type=enterable&include_fields=components", function(response) {
         document.getElementById("textComponent").disabled = false;
         var components = response.products[0].components;
@@ -938,6 +964,16 @@ function clearAssigneesList() {
     var elem = document.getElementById("textAssignee");
     removeChildren(elem);
     elem.setAttribute("disabled", "");
+}
+
+function clearComponentsList() {
+    var elem = document.getElementById("textComponent");
+    removeChildren(elem);
+}
+
+function clearPriorityList() {
+    var elem = document.getElementById("textPriority");
+    removeChildren(elem);
 }
 
 function filterByAssignee(name) {
